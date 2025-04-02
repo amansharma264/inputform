@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Registration</title>
+    <script src="https://cdn.jsdelivr.net/npm/appwrite@17.0.1/dist/iife/sdk.min.js"></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f4f4f4;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        input, select, button {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            background-color: #28a745;
+            color: white;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Event Registration</h2>
+        <input type="text" id="team_name" placeholder="Team Name (if applicable)">
+
+        <!-- Leader Details -->
+        <h3>Team Leader</h3>
+        <input type="text" id="leader_name" placeholder="Leader Name" required>
+        <input type="text" id="leader_usn" placeholder="Leader USN" required>
+        <input type="text" id="leader_mobile" placeholder="Mobile Number" required>
+        <input type="text" id="leader_college" placeholder="College Name" required>
+        <input type="number" id="leader_year" placeholder="Year of Study" required>
+        <input type="email" id="leader_email" placeholder="Email" required>
+
+        <!-- Team Members -->
+        <h3>Team Members</h3>
+        <div id="team_members">
+            <input type="text" id="member1_name" placeholder="Member 1 Name">
+            <input type="text" id="member1_usn" placeholder="Member 1 USN">
+
+            <input type="text" id="member2_name" placeholder="Member 2 Name">
+            <input type="text" id="member2_usn" placeholder="Member 2 USN">
+
+            <input type="text" id="member3_name" placeholder="Member 3 Name">
+            <input type="text" id="member3_usn" placeholder="Member 3 USN">
+
+            <input type="text" id="member4_name" placeholder="Member 4 Name">
+            <input type="text" id="member4_usn" placeholder="Member 4 USN">
+
+            <input type="text" id="member5_name" placeholder="Member 5 Name">
+            <input type="text" id="member5_usn" placeholder="Member 5 USN">
+
+            <input type="text" id="member6_name" placeholder="Member 6 Name">
+            <input type="text" id="member6_usn" placeholder="Member 6 USN">
+        </div>
+
+        <!-- Event Selection -->
+        <select id="event_name" required>
+            <option value="">Select Event</option>
+            <option value="Circuit_Debugging">Coding Challenge</option>
+            <option value="Techanical_quiz">Hackathon</option>
+            <option value="digital_adventure">Robotics</option>
+            <option value="paper_presentation">AI Workshop</option>
+            <option value="treasure_hunt">Gaming Tournament</option>
+            <option value="web/app_dev">App Development</option>
+            <option value="mini_project">Cyber Security</option>
+            <option value="jam">Drone Racing</option>
+            <option value="turncoats">Machine Learning Bootcamp</option>
+        </select>
+
+        <!-- Payment Details -->
+        <input type="text" id="transaction_id" placeholder="Transaction ID" required>
+        <input type="file" id="payment_screenshot" accept="image/*" required>
+
+        <button onclick="submitForm()">Register</button>
+        <p id="message"></p>
+    </div>
+    
+    <script>
+        // Initialize Appwrite Client & Services Properly
+        const client = new Appwrite.Client();
+        client.setEndpoint("https://cloud.appwrite.io/v1").setProject("67ed61ab000a5e36fdc4");
+
+        const databases = new Appwrite.Databases(client);
+        const storage = new Appwrite.Storage(client);
+
+        async function submitForm() {
+            const team_name = document.getElementById("team_name").value.trim();
+            
+            const leader_name = document.getElementById("leader_name").value.trim();
+            const leader_usn = document.getElementById("leader_usn").value.trim();
+            const leader_mobile = document.getElementById("leader_mobile").value.trim();
+            const leader_college = document.getElementById("leader_college").value.trim();
+            const leader_year = document.getElementById("leader_year").value;
+            const leader_email = document.getElementById("leader_email").value.trim();
+
+            const event_name = document.getElementById("event_name").value;
+            const transaction_id = document.getElementById("transaction_id").value.trim();
+            const fileInput = document.getElementById("payment_screenshot").files[0];
+
+            // Team Members
+            const team_members = [];
+            for (let i = 1; i <= 6; i++) {
+                const memberName = document.getElementById(`member${i}_name`).value.trim();
+                const memberUsn = document.getElementById(`member${i}_usn`).value.trim();
+                if (memberName && memberUsn) {
+                    team_members.push({ name: memberName, usn: memberUsn });
+                }
+            }
+
+            // Validate required fields
+            if (!leader_name || !leader_usn || !leader_mobile || !leader_college || !leader_year || !leader_email || !event_name || !transaction_id || !fileInput) {
+                document.getElementById("message").innerText = "All fields are required.";
+                return;
+            }
+
+            try {
+                // Upload payment screenshot
+                const file = await storage.createFile("67ed6d230030ff950901", "unique()", fileInput);
+                const fileId = file.$id;
+
+                // Store registration details in database
+                await databases.createDocument(
+                    "67ed61e70010c3699e0d",
+                    "67ed620900054b2e8c18",
+                    "unique()",
+                    {
+                        team_name: team_name || "N/A",
+                        leader_name,
+                        leader_usn,
+                        leader_mobile,
+                        leader_college,
+                        leader_year: parseInt(leader_year),
+                        leader_email,
+                        event_name,
+                        transaction_id,
+                        payment_screenshot: fileId,
+                        team_members
+                    }
+                );
+
+                document.getElementById("message").innerText = "Registration Successful!";
+            } catch (error) {
+                document.getElementById("message").innerText = "Error: " + error.message;
+            }
+        }
+    </script>
+</body>
+</html>
